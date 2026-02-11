@@ -48,92 +48,95 @@ export default function PannellumExperiment() {
           showControls: true
         },
         scenes: {
-          // --- NODE 1: Reception / Red Poster ---
           scene1: {
-            title: "Reception Area",
+            title: "Dev Team Area",
             panorama: "/pan/1.jpg", 
-            // haov/vaov not needed for these perfect 360 photospheres
             hotSpots: [
               {
-                pitch: -5,
-                yaw: 110, // Rotated right to face the hallway entrance
+                pitch: -15,
+                yaw: 95,
                 type: "scene",
                 text: "Walk to Corridor",
                 sceneId: "scene2"
               },
               {
-                pitch: 0,
-                yaw: -20, // Looking at the Red Poster
+                pitch: -6,
+                yaw: -4,
                 type: "info",
-                text: "Company Values",
+                text: "Subha Sir",
                 clickHandlerFunc: (evt: any, args: any) => setActiveInfo(args),
-                clickHandlerArgs: { title: "Motto", description: "'Always Learn, Never Lecture'" }
+                clickHandlerArgs: { title: "Lead", description: "Full stack developer lead" }
               }
             ],
           },
           
-          // --- NODE 2: Corridor ---
           scene2: {
-            title: "Corridor",
+            title: "Raj sir Cabin Area",
             panorama: "/pan/2.jpg",
             hotSpots: [
               {
-                pitch: -5,
-                yaw: -160, // Turn around to go back to poster
+                pitch: -11,
+                yaw: -85,
                 type: "scene",
-                text: "Back to Reception",
+                text: "Back to dev Area",
                 sceneId: "scene1"
               },
               {
-                pitch: -5,
-                yaw: 10, // Straight ahead into the main floor
+                pitch: -12,
+                yaw: 95,
                 type: "scene",
                 text: "Enter Main Hall",
                 sceneId: "scene3"
+              },
+              {
+                pitch: -13,
+                yaw: -1,
+                type: "scene",
+                text: "Go to workstation B",
+                sceneId: "scene5"
               }
             ],
           },
 
-          // --- NODE 3: Main Hallway (Yellow Poster) ---
           scene3: {
             title: "Main Hallway",
             panorama: "/pan/3.jpg",
             hotSpots: [
               {
-                pitch: -5,
-                yaw: 190, // Behind you
+                pitch: -13,
+                yaw: 4,
                 type: "scene",
                 text: "Back to Corridor",
                 sceneId: "scene2"
               },
               {
-                pitch: -5,
-                yaw: -45, // Angled towards the desks
+                pitch: -13,
+                yaw: -92, 
                 type: "scene",
-                text: "Go to Workstations",
+                text: "Go to workStation",
                 sceneId: "scene4"
+              },
+              {
+                pitch: -5,
+                yaw: 69, 
+                type: "scene",
+                text: "Go to Washroom",
+                sceneId: "scene6"
               }
             ],
           },
 
-          // --- NODE 4: Workstations (Man in Green) ---
+          
           scene4: {
             title: "Workstations A",
             panorama: "/pan/4.jpg",
             hotSpots: [
               {
-                pitch: -5,
-                yaw: 170, // Back towards the hall
+                pitch: -14,
+                yaw: 127,
                 type: "scene",
                 text: "Back to Hallway",
                 sceneId: "scene3"
-              },
-              {
-                pitch: -5,
-                yaw: -10, // Straight down the aisle
-                type: "scene",
-                text: "Move Further Inside",
-                sceneId: "scene5"
               }
             ],
           },
@@ -141,36 +144,50 @@ export default function PannellumExperiment() {
           // --- NODE 5: Brick Pillar Area ---
           scene5: {
             title: "Workstations B",
-            panorama: "/pan/5.jpg",
+            panorama: "/pan/2-1.jpg",
             hotSpots: [
               {
                 pitch: -5,
-                yaw: 180,
+                yaw: 0,
                 type: "scene",
-                text: "Go Back",
-                sceneId: "scene4"
+                text: "Go Back to Dev Team",
+                sceneId: "scene2"
               },
               {
-                pitch: -5,
-                yaw: 0, // Towards the back wall/glass
+                pitch: -11,
+                yaw: -76,
                 type: "scene",
-                text: "Go to Back Office",
+                text: "Go to Washroom",
                 sceneId: "scene6"
               }
             ],
           },
 
-          // --- NODE 6: Back Office ---
+          
           scene6: {
             title: "Back Office",
-            panorama: "/pan/6.jpg",
+            panorama: "/pan/3-1.jpg",
             hotSpots: [
               {
-                pitch: -5,
-                yaw: 180, // Turn around to leave
+                pitch: -9,
+                yaw: 0, // Turn around to leave
                 type: "scene",
-                text: "Return to Main Floor",
+                text: "Return to Raj office",
+                sceneId: "scene3"
+              },
+              {
+                pitch: -8,
+                yaw: 94, // Turn around to leave
+                type: "scene",
+                text: "Go back to work-Station B",
                 sceneId: "scene5"
+              },
+              {
+                pitch: -5,
+                yaw: 57, // Turn around to leave
+                type: "scene",
+                text: "Go back to Dev Team",
+                sceneId: "scene2"
               }
             ],
           },

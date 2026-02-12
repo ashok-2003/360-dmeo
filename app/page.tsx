@@ -1,32 +1,111 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 
+// --- TYPES ---
 declare global {
   interface Window {
     pannellum: any;
   }
 }
 
+interface HotSpotConfig {
+  pitch: number;
+  yaw: number;
+  type: "scene" | "info";
+  text: string;
+  targetSceneId?: string; // For navigation
+  title?: string;         // For info cards
+  description?: string;   // For info cards
+}
+
+interface SceneConfig {
+  title: string;
+  panorama: string;
+  northOffset: number; 
+  hotSpots: HotSpotConfig[];
+}
+
+// --- 1. CONFIGURATION (EDIT THIS TO FIX ANGLES) ---
+const SCENES_DATA: Record<string, SceneConfig> = {
+  scene1: {
+    title: "Dev Team Area",
+    panorama: "/pan/1.jpg",
+    northOffset: 0, 
+    hotSpots: [
+      { pitch: -15, yaw: 95, type: "scene", text: "Walk to Corridor", targetSceneId: "scene2" },
+      { pitch: -6, yaw: -4, type: "info", text: "Subha Sir", title: "Lead", description: "Full stack developer lead" }
+    ],
+  },
+  scene2: {
+    title: "Raj sir Cabin Area",
+    panorama: "/pan/2.jpg",
+    northOffset: 0,
+    hotSpots: [
+      { pitch: -11, yaw: -85, type: "scene", text: "Back to dev Area", targetSceneId: "scene1" },
+      { pitch: -12, yaw: 95, type: "scene", text: "Enter Main Hall", targetSceneId: "scene3" },
+      { pitch: -13, yaw: -1, type: "scene", text: "Go to workstation B", targetSceneId: "scene5" }
+    ],
+  },
+  scene3: {
+    title: "Main Hallway",
+    panorama: "/pan/3.jpg",
+    northOffset: 0,
+    hotSpots: [
+      { pitch: -13, yaw: 4, type: "scene", text: "Back to Corridor", targetSceneId: "scene2" },
+      { pitch: -13, yaw: -92, type: "scene", text: "Go to workStation", targetSceneId: "scene4" },
+      { pitch: -5, yaw: 69, type: "scene", text: "Go to Washroom", targetSceneId: "scene6" }
+    ],
+  },
+  scene4: {
+    title: "Workstations A",
+    panorama: "/pan/4.jpg",
+    northOffset: 0,
+    hotSpots: [
+      { pitch: -14, yaw: 127, type: "scene", text: "Back to Hallway", targetSceneId: "scene3" }
+    ],
+  },
+  scene5: {
+    title: "Workstations B",
+    panorama: "/pan/2-1.jpg",
+    northOffset: 0,
+    hotSpots: [
+      { pitch: -5, yaw: 0, type: "scene", text: "Go Back to Dev Team", targetSceneId: "scene2" },
+      { pitch: -11, yaw: -76, type: "scene", text: "Go to Washroom", targetSceneId: "scene6" }
+    ],
+  },
+  scene6: {
+    title: "Back Office",
+    panorama: "/pan/3-1.jpg",
+    northOffset: 0,
+    hotSpots: [
+      { pitch: -9, yaw: 0, type: "scene", text: "Return to Raj office", targetSceneId: "scene3" },
+      { pitch: -8, yaw: 94, type: "scene", text: "Go back to work-Station B", targetSceneId: "scene5" },
+      { pitch: -5, yaw: 57, type: "scene", text: "Go back to Dev Team", targetSceneId: "scene2" }
+    ],
+  },
+};
+
 export default function PannellumExperiment() {
   const viewerRef = useRef<HTMLDivElement>(null);
-  const viewerInstance = useRef<any>(null); // Store the Pannellum instance
-  const [isLoaded, setIsLoaded] = useState(false);
+  const viewerInstance = useRef<any>(null);
+  const [isScriptLoaded, setIsScriptLoaded] = useState(false);
   const [activeInfo, setActiveInfo] = useState<{ title: string; description: string } | null>(null);
 
-  const allPanoramas = [
-    "/pan/1.jpg", "/pan/2.jpg", "/pan/3.jpg", 
-    "/pan/4.jpg", "/pan/2-1.jpg", "/pan/3-1.jpg",
-  ];
-
+  // --- 2. PRELOAD LOGIC ---
   useEffect(() => {
-    allPanoramas.forEach((src) => {
+    Object.values(SCENES_DATA).forEach((scene) => {
       const img = new Image();
-      img.src = src;
+      img.src = scene.panorama;
     });
   }, []);
 
+  // --- 3. LOAD SCRIPTS ---
   useEffect(() => {
+    if (window.pannellum) {
+      setIsScriptLoaded(true);
+      return;
+    }
     const link = document.createElement("link");
     link.rel = "stylesheet";
     link.href = "https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.css";
@@ -35,172 +114,98 @@ export default function PannellumExperiment() {
     const script = document.createElement("script");
     script.src = "https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.js";
     script.async = true;
-    script.onload = () => setIsLoaded(true);
+    script.onload = () => setIsScriptLoaded(true);
     document.body.appendChild(script);
 
     return () => {
-      document.head.removeChild(link);
-      document.body.removeChild(script);
+      if (document.head.contains(link)) document.head.removeChild(link);
+      if (document.body.contains(script)) document.body.removeChild(script);
     };
   }, []);
 
-  // --- HELPER: CUSTOM SCENE LOADER ---
-  // This function gets the current look angle and passes it to the next scene
-  const navigateToScene = (event: MouseEvent, args: any) => {
-    if (!viewerInstance.current) return;
+  // --- 4. NAVIGATION ENGINE (Handles Angle Math) ---
+  const navigateToScene = useCallback((evt: MouseEvent, args: any) => {
+    if (!viewerInstance.current || !args.targetSceneId) return;
 
-    // 1. Get current look direction
+    const currentSceneId = viewerInstance.current.getScene();
+    const targetSceneId = args.targetSceneId;
+
+    // A. Get current camera angle
     const currentPitch = viewerInstance.current.getPitch();
     const currentYaw = viewerInstance.current.getYaw();
-    
-    // 2. Load the next scene, preserving the look direction
-    // "same" tells pannellum to keep the pitch/yaw/hfov from the previous scene
-    viewerInstance.current.loadScene(args.sceneId, currentPitch, currentYaw, "same");
-  };
 
+    // B. Get Offsets
+    const currentOffset = SCENES_DATA[currentSceneId]?.northOffset || 0;
+    const targetOffset = SCENES_DATA[targetSceneId]?.northOffset || 0;
+
+    // C. Calculate Correction
+    // If current image is offset 0, and next is offset 180 (flipped):
+    // We need to rotate our view by (0 - 180) = -180 degrees to look at the same physical point.
+    const rotationDifference = currentOffset - targetOffset;
+    const correctedYaw = currentYaw + rotationDifference;
+
+    // D. Move
+    viewerInstance.current.loadScene(targetSceneId, currentPitch, correctedYaw, "same");
+  }, []);
+
+  const showInfo = useCallback((evt: MouseEvent, args: any) => {
+    setActiveInfo({ title: args.title, description: args.description });
+  }, []);
+
+  // --- 5. INITIALIZE VIEWER ---
   useEffect(() => {
-    if (isLoaded && viewerRef.current && window.pannellum) {
+    if (!isScriptLoaded || !viewerRef.current || !window.pannellum) return;
+
+    // Clean up previous instance
+    if (viewerInstance.current) {
+      viewerInstance.current = null;
       viewerRef.current.innerHTML = "";
-
-      // Initialize and store the viewer instance
-      viewerInstance.current = window.pannellum.viewer(viewerRef.current, {
-        default: {
-          firstScene: "scene1",
-          sceneFadeDuration: 0, // Disable transition for instant switch
-          autoLoad: true,
-          compass: true,
-          showControls: true
-        },
-        scenes: {
-          scene1: {
-            title: "Dev Team Area",
-            panorama: "/pan/1.jpg", 
-            hotSpots: [
-              {
-                pitch: -15, yaw: 95, 
-                type: "scene", 
-                text: "Walk to Corridor",
-                clickHandlerFunc: navigateToScene,
-                clickHandlerArgs: { sceneId: "scene2" }
-              },
-              {
-                pitch: -6, yaw: -4, type: "info", text: "Subha Sir",
-                clickHandlerFunc: (evt: any, args: any) => setActiveInfo(args),
-                clickHandlerArgs: { title: "Lead", description: "Full stack developer lead" }
-              }
-            ],
-          },
-          
-          scene2: {
-            title: "Raj sir Cabin Area",
-            panorama: "/pan/2.jpg",
-            hotSpots: [
-              {
-                pitch: -11, yaw: -85, type: "scene",
-                text: "Back to dev Area",
-                clickHandlerFunc: navigateToScene,
-                clickHandlerArgs: { sceneId: "scene1" }
-              },
-              {
-                pitch: -12, yaw: 95, type: "scene",
-                text: "Enter Main Hall",
-                clickHandlerFunc: navigateToScene,
-                clickHandlerArgs: { sceneId: "scene3" }
-              },
-              {
-                pitch: -13, yaw: -1, type: "scene",
-                text: "Go to workstation B",
-                clickHandlerFunc: navigateToScene,
-                clickHandlerArgs: { sceneId: "scene5" }
-              }
-            ],
-          },
-
-          scene3: {
-            title: "Main Hallway",
-            panorama: "/pan/3.jpg",
-            hotSpots: [
-              {
-                pitch: -13, yaw: 4, type: "scene",
-                text: "Back to Corridor",
-                clickHandlerFunc: navigateToScene,
-                clickHandlerArgs: { sceneId: "scene2" }
-              },
-              {
-                pitch: -13, yaw: -92, type: "scene",
-                text: "Go to workStation",
-                clickHandlerFunc: navigateToScene,
-                clickHandlerArgs: { sceneId: "scene4" }
-              },
-              {
-                pitch: -5, yaw: 69, type: "scene",
-                text: "Go to Washroom",
-                clickHandlerFunc: navigateToScene,
-                clickHandlerArgs: { sceneId: "scene6" }
-              }
-            ],
-          },
-          
-          scene4: {
-            title: "Workstations A",
-            panorama: "/pan/4.jpg",
-            hotSpots: [
-              {
-                pitch: -14, yaw: 127, type: "scene",
-                text: "Back to Hallway",
-                clickHandlerFunc: navigateToScene,
-                clickHandlerArgs: { sceneId: "scene3" }
-              }
-            ],
-          },
-
-          scene5: {
-            title: "Workstations B",
-            panorama: "/pan/2-1.jpg",
-            hotSpots: [
-              {
-                pitch: -5, yaw: 0, type: "scene",
-                text: "Go Back to Dev Team",
-                clickHandlerFunc: navigateToScene,
-                clickHandlerArgs: { sceneId: "scene2" }
-              },
-              {
-                pitch: -11, yaw: -76, type: "scene",
-                text: "Go to Washroom",
-                clickHandlerFunc: navigateToScene,
-                clickHandlerArgs: { sceneId: "scene6" }
-              }
-            ],
-          },
-
-          scene6: {
-            title: "Back Office",
-            panorama: "/pan/3-1.jpg",
-            hotSpots: [
-              {
-                pitch: -9, yaw: 0, type: "scene",
-                text: "Return to Raj office",
-                clickHandlerFunc: navigateToScene,
-                clickHandlerArgs: { sceneId: "scene3" }
-              },
-              {
-                pitch: -8, yaw: 94, type: "scene",
-                text: "Go back to work-Station B",
-                clickHandlerFunc: navigateToScene,
-                clickHandlerArgs: { sceneId: "scene5" }
-              },
-              {
-                pitch: -5, yaw: 57, type: "scene",
-                text: "Go back to Dev Team",
-                clickHandlerFunc: navigateToScene,
-                clickHandlerArgs: { sceneId: "scene2" }
-              }
-            ],
-          },
-        },
-      });
     }
-  }, [isLoaded]);
+
+    // Convert our Clean Data -> Pannellum Format
+    const processedScenes: any = {};
+    Object.keys(SCENES_DATA).forEach((key) => {
+      const scene = SCENES_DATA[key];
+      processedScenes[key] = {
+        title: scene.title,
+        panorama: scene.panorama,
+        northOffset: scene.northOffset, // Tells Pannellum where North is (for compass)
+        hotSpots: scene.hotSpots.map((hs) => {
+          if (hs.type === "scene") {
+            return {
+              pitch: hs.pitch,
+              yaw: hs.yaw,
+              type: "scene", // Keep 'scene' to get the Arrow Icon
+              text: hs.text,
+              clickHandlerFunc: navigateToScene,
+              clickHandlerArgs: { targetSceneId: hs.targetSceneId }
+            };
+          } else {
+            return {
+              pitch: hs.pitch,
+              yaw: hs.yaw,
+              type: "info",
+              text: hs.text,
+              clickHandlerFunc: showInfo,
+              clickHandlerArgs: { title: hs.title, description: hs.description }
+            };
+          }
+        })
+      };
+    });
+
+    viewerInstance.current = window.pannellum.viewer(viewerRef.current, {
+      default: {
+        firstScene: "scene1",
+        sceneFadeDuration: 0, // Instant switch prevents disorientation
+        autoLoad: true,
+        compass: true,
+        showControls: true,
+        hotSpotDebug: false,
+      },
+      scenes: processedScenes,
+    });
+  }, [isScriptLoaded, navigateToScene, showInfo]);
 
   return (
     <main className="w-screen h-screen bg-neutral-900 relative">

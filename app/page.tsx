@@ -26,7 +26,7 @@ interface SceneConfig {
   hotSpots: HotSpotConfig[];
 }
 
-// --- 1. CONFIGURATION (EDIT THIS TO FIX ANGLES) ---
+// --- 1. CONFIGURATION ---
 const SCENES_DATA: Record<string, SceneConfig> = {
   scene1: {
     title: "Dev Team Area",
@@ -123,28 +123,22 @@ export default function PannellumExperiment() {
     };
   }, []);
 
-  // --- 4. NAVIGATION ENGINE (Handles Angle Math) ---
+  // --- 4. NAVIGATION ENGINE ---
   const navigateToScene = useCallback((evt: MouseEvent, args: any) => {
     if (!viewerInstance.current || !args.targetSceneId) return;
 
     const currentSceneId = viewerInstance.current.getScene();
     const targetSceneId = args.targetSceneId;
 
-    // A. Get current camera angle
     const currentPitch = viewerInstance.current.getPitch();
     const currentYaw = viewerInstance.current.getYaw();
 
-    // B. Get Offsets
     const currentOffset = SCENES_DATA[currentSceneId]?.northOffset || 0;
     const targetOffset = SCENES_DATA[targetSceneId]?.northOffset || 0;
 
-    // C. Calculate Correction
-    // If current image is offset 0, and next is offset 180 (flipped):
-    // We need to rotate our view by (0 - 180) = -180 degrees to look at the same physical point.
     const rotationDifference = currentOffset - targetOffset;
     const correctedYaw = currentYaw + rotationDifference;
 
-    // D. Move
     viewerInstance.current.loadScene(targetSceneId, currentPitch, correctedYaw, "same");
   }, []);
 
@@ -156,26 +150,26 @@ export default function PannellumExperiment() {
   useEffect(() => {
     if (!isScriptLoaded || !viewerRef.current || !window.pannellum) return;
 
-    // Clean up previous instance
     if (viewerInstance.current) {
       viewerInstance.current = null;
       viewerRef.current.innerHTML = "";
     }
 
-    // Convert our Clean Data -> Pannellum Format
+    // Convert Data -> Pannellum Format with "street-view-arrow" class
     const processedScenes: any = {};
     Object.keys(SCENES_DATA).forEach((key) => {
       const scene = SCENES_DATA[key];
       processedScenes[key] = {
         title: scene.title,
         panorama: scene.panorama,
-        northOffset: scene.northOffset, // Tells Pannellum where North is (for compass)
+        northOffset: scene.northOffset, 
         hotSpots: scene.hotSpots.map((hs) => {
           if (hs.type === "scene") {
             return {
               pitch: hs.pitch,
               yaw: hs.yaw,
-              type: "scene", // Keep 'scene' to get the Arrow Icon
+              type: "scene",
+              cssClass: "street-view-arrow", // <--- THIS APPLIES THE NEW CSS
               text: hs.text,
               clickHandlerFunc: navigateToScene,
               clickHandlerArgs: { targetSceneId: hs.targetSceneId }
@@ -197,7 +191,7 @@ export default function PannellumExperiment() {
     viewerInstance.current = window.pannellum.viewer(viewerRef.current, {
       default: {
         firstScene: "scene1",
-        sceneFadeDuration: 0, // Instant switch prevents disorientation
+        sceneFadeDuration: 0,
         autoLoad: true,
         compass: true,
         showControls: true,

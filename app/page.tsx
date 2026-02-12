@@ -34,7 +34,8 @@ const SCENES_DATA: Record<string, SceneConfig> = {
     northOffset: 0, 
     hotSpots: [
       { pitch: -15, yaw: 95, type: "scene", text: "Walk to Corridor", targetSceneId: "scene2" },
-      { pitch: -6, yaw: -4, type: "info", text: "Subha Sir", title: "Lead", description: "Full stack developer lead" }
+      { pitch: -6, yaw: -4, type: "info", text: "Subha Sir", title: "Lead", description: "Full stack developer lead" },
+      { pitch: -3, yaw: 10, type: "info", text: "Raj Sir", title: "Lead", description: "Infra lead" }
     ],
   },
   scene2: {

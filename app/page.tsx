@@ -44,17 +44,17 @@ const SCENES_DATA: Record<string, SceneConfig> = {
     hotSpots: [
       { pitch: -11, yaw: -85, type: "scene", text: "Back to dev Area", targetSceneId: "scene1" },
       { pitch: -12, yaw: 95, type: "scene", text: "Enter Main Hall", targetSceneId: "scene3" },
-      { pitch: -13, yaw: -1, type: "scene", text: "Go to workstation B", targetSceneId: "scene5" }
+      // { pitch: -13, yaw: -1, type: "scene", text: "Go to workstation B", targetSceneId: "scene5" }
     ],
   },
   scene3: {
     title: "Main Hallway",
     panorama: "/pan/3.jpg",
-    northOffset: 0,
+    northOffset: -90,
     hotSpots: [
       { pitch: -13, yaw: 4, type: "scene", text: "Back to Corridor", targetSceneId: "scene2" },
-      { pitch: -13, yaw: -92, type: "scene", text: "Go to workStation", targetSceneId: "scene4" },
-      { pitch: -5, yaw: 69, type: "scene", text: "Go to Washroom", targetSceneId: "scene6" }
+      // { pitch: -13, yaw: -92, type: "scene", text: "Go to workStation", targetSceneId: "scene4" },
+      // { pitch: -5, yaw: 69, type: "scene", text: "Go to Washroom", targetSceneId: "scene6" }
     ],
   },
   scene4: {

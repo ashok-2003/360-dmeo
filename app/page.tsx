@@ -202,6 +202,17 @@ export default function PannellumExperiment() {
     });
   }, [isScriptLoaded, navigateToScene, showInfo]);
 
+  // --- 6. HIDE PANNELLUM BRANDING ---
+  useEffect(() => {
+    const el = viewerRef.current;
+    if (!el) return;
+
+    const blockContextMenu = (e: MouseEvent) => e.preventDefault();
+    el.addEventListener("contextmenu", blockContextMenu);
+
+    return () => el.removeEventListener("contextmenu", blockContextMenu);
+  }, []);
+
   return (
     <main className="w-screen h-screen bg-neutral-900 relative">
       <div ref={viewerRef} className="w-full h-full absolute inset-0 z-0" />
